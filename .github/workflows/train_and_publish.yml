@@ -54,18 +54,16 @@ jobs:
 
             ### Training Results
             - Dataset: NSL-KDD (125,973 train / 22,544 test samples)
-            - IsolationForest: Precision ~80%, unsupervised cold-start model
-            - SGDClassifier: Precision ~89%, Recall ~80%, online learning model
+            - IsolationForest: Precision 80%, unsupervised cold-start model
+            - SGDClassifier: Precision 89%, Recall 80%, online learning model
 
             ### Inference Latency (ONNX Runtime)
             - IsolationForest P99: ~5ms
             - SGDClassifier P99: ~0.4ms
 
             ### Usage in ci-cd-ai
-```bash
-            wget https://github.com/Aakarshit12/ai-anomaly-model/releases/latest/download/isolation_forest.onnx
-            wget https://github.com/Aakarshit12/ai-anomaly-model/releases/latest/download/sgd_classifier.onnx
-```
+            - wget .../releases/latest/download/isolation_forest.onnx
+            - wget .../releases/latest/download/sgd_classifier.onnx
           files: |
             models/isolation_forest.onnx
             models/sgd_classifier.onnx
