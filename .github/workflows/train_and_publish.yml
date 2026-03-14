@@ -28,7 +28,7 @@ jobs:
           mkdir -p data
           wget -q "https://raw.githubusercontent.com/jmnwong/NSL-KDD-Dataset/master/KDDTrain%2B.txt" -O data/KDDTrain+.txt
           wget -q "https://raw.githubusercontent.com/jmnwong/NSL-KDD-Dataset/master/KDDTest%2B.txt" -O data/KDDTest+.txt
-          echo "Dataset downloaded successfully"
+          echo "Dataset downloaded:"
           wc -l data/KDDTrain+.txt data/KDDTest+.txt
 
       - name: Preprocess data
@@ -38,13 +38,30 @@ jobs:
         run: python src/train.py
 
       - name: Evaluate models
-        run: python src/evaluate.py
+        run: |
+          python src/evaluate.py | tee eval_results.txt
+          echo "EVAL_RESULTS<<EOF" >> $GITHUB_ENV
+          cat eval_results.txt >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
 
       - name: Export to ONNX
         run: python src/export.py
 
       - name: Validate ONNX latency
-        run: python src/validate_onnx.py
+        run: |
+          python src/validate_onnx.py | tee latency_results.txt
+          echo "LATENCY_RESULTS<<EOF" >> $GITHUB_ENV
+          cat latency_results.txt >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - name: Save ONNX models as workflow artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: onnx-models-v${{ github.run_number }}
+          path: |
+            models/isolation_forest.onnx
+            models/sgd_classifier.onnx
+          retention-days: 30
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -54,18 +71,24 @@ jobs:
           body: |
             ## Model Release v${{ github.run_number }}
 
-            ### Training Results
-            - Dataset: NSL-KDD (125,973 train / 22,544 test samples)
-            - IsolationForest: Precision 80%, unsupervised cold-start model
-            - SGDClassifier: Precision 89%, Recall 80%, online learning model
+            ### Evaluation Results
+```
+            ${{ env.EVAL_RESULTS }}
+```
 
             ### Inference Latency (ONNX Runtime)
-            - IsolationForest P99: ~5ms
-            - SGDClassifier P99: ~0.4ms
+```
+            ${{ env.LATENCY_RESULTS }}
+```
+
+            ### Dataset
+            NSL-KDD — 125,973 train / 22,544 test samples
 
             ### Usage in ci-cd-ai
-            - wget .../releases/latest/download/isolation_forest.onnx
-            - wget .../releases/latest/download/sgd_classifier.onnx
+```bash
+            wget https://github.com/${{ github.repository }}/releases/latest/download/isolation_forest.onnx
+            wget https://github.com/${{ github.repository }}/releases/latest/download/sgd_classifier.onnx
+```
           files: |
             models/isolation_forest.onnx
             models/sgd_classifier.onnx
