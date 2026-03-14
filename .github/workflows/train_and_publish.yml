@@ -38,21 +38,13 @@ jobs:
         run: python src/train.py
 
       - name: Evaluate models
-        run: |
-          python src/evaluate.py | tee eval_results.txt
-          echo "EVAL_RESULTS<<EOF" >> $GITHUB_ENV
-          cat eval_results.txt >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
+        run: python src/evaluate.py | tee eval_results.txt
 
       - name: Export to ONNX
         run: python src/export.py
 
       - name: Validate ONNX latency
-        run: |
-          python src/validate_onnx.py | tee latency_results.txt
-          echo "LATENCY_RESULTS<<EOF" >> $GITHUB_ENV
-          cat latency_results.txt >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
+        run: python src/validate_onnx.py | tee latency_results.txt
 
       - name: Save ONNX models as workflow artifacts
         uses: actions/upload-artifact@v4
@@ -63,32 +55,36 @@ jobs:
             models/sgd_classifier.onnx
           retention-days: 30
 
+      - name: Write release notes
+        run: |
+          cat > release_notes.md << 'NOTES'
+          ## Model Release v${{ github.run_number }}
+
+          ### Dataset
+          NSL-KDD — 125,973 train / 22,544 test samples
+
+          ### Usage in ci-cd-ai
+          wget https://github.com/${{ github.repository }}/releases/latest/download/isolation_forest.onnx
+          wget https://github.com/${{ github.repository }}/releases/latest/download/sgd_classifier.onnx
+          NOTES
+
+          echo "" >> release_notes.md
+          echo "### Evaluation Results" >> release_notes.md
+          echo '```' >> release_notes.md
+          cat eval_results.txt >> release_notes.md
+          echo '```' >> release_notes.md
+          echo "" >> release_notes.md
+          echo "### Inference Latency" >> release_notes.md
+          echo '```' >> release_notes.md
+          cat latency_results.txt >> release_notes.md
+          echo '```' >> release_notes.md
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ github.run_number }}
           name: "Model Release v${{ github.run_number }}"
-          body: |
-            ## Model Release v${{ github.run_number }}
-
-            ### Evaluation Results
-```
-            ${{ env.EVAL_RESULTS }}
-```
-
-            ### Inference Latency (ONNX Runtime)
-```
-            ${{ env.LATENCY_RESULTS }}
-```
-
-            ### Dataset
-            NSL-KDD — 125,973 train / 22,544 test samples
-
-            ### Usage in ci-cd-ai
-```bash
-            wget https://github.com/${{ github.repository }}/releases/latest/download/isolation_forest.onnx
-            wget https://github.com/${{ github.repository }}/releases/latest/download/sgd_classifier.onnx
-```
+          body_path: release_notes.md
           files: |
             models/isolation_forest.onnx
             models/sgd_classifier.onnx
