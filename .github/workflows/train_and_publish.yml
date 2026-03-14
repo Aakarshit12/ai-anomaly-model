@@ -6,7 +6,6 @@ on:
   workflow_dispatch:
 
 jobs:
-  jobs:
   train-and-publish:
     runs-on: ubuntu-latest
     permissions:
