@@ -1,0 +1,24 @@
+.PHONY: all preprocess train evaluate export validate clean
+
+all: preprocess train evaluate export validate
+
+preprocess:
+	python src/preprocess.py
+
+train:
+	python src/train.py
+
+evaluate:
+	python src/evaluate.py
+
+export:
+	python src/export.py
+
+validate:
+	python src/validate_onnx.py
+
+test:
+	pytest tests/ -v
+
+clean:
+	del /Q models\*.pkl models\*.onnx 2>nul || true

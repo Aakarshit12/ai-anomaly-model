@@ -1,0 +1,73 @@
+name: Train and Publish Models
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  train-and-publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Download NSL-KDD dataset
+        run: |
+          mkdir -p data
+          wget -q "https://raw.githubusercontent.com/jmnwong/NSL-KDD-Dataset/master/KDDTrain%2B.txt" -O data/KDDTrain+.txt
+          wget -q "https://raw.githubusercontent.com/jmnwong/NSL-KDD-Dataset/master/KDDTest%2B.txt" -O data/KDDTest+.txt
+          echo "Dataset downloaded successfully"
+          wc -l data/KDDTrain+.txt data/KDDTest+.txt
+
+      - name: Preprocess data
+        run: python src/preprocess.py
+
+      - name: Train models
+        run: python src/train.py
+
+      - name: Evaluate models
+        run: python src/evaluate.py
+
+      - name: Export to ONNX
+        run: python src/export.py
+
+      - name: Validate ONNX latency
+        run: python src/validate_onnx.py
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ github.run_number }}
+          name: "Model Release v${{ github.run_number }}"
+          body: |
+            ## Model Release v${{ github.run_number }}
+
+            ### Training Results
+            - Dataset: NSL-KDD (125,973 train / 22,544 test samples)
+            - IsolationForest: Precision ~80%, unsupervised cold-start model
+            - SGDClassifier: Precision ~89%, Recall ~80%, online learning model
+
+            ### Inference Latency (ONNX Runtime)
+            - IsolationForest P99: ~5ms
+            - SGDClassifier P99: ~0.4ms
+
+            ### Usage in ci-cd-ai
+```bash
+            wget https://github.com/Aakarshit12/ai-anomaly-model/releases/latest/download/isolation_forest.onnx
+            wget https://github.com/Aakarshit12/ai-anomaly-model/releases/latest/download/sgd_classifier.onnx
+```
+          files: |
+            models/isolation_forest.onnx
+            models/sgd_classifier.onnx
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

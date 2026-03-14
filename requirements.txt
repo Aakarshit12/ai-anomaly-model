@@ -1,0 +1,7 @@
+﻿numpy
+pandas
+scikit-learn
+skl2onnx
+onnxruntime
+joblib
+pytest

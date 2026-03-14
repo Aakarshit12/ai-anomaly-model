@@ -1,0 +1,27 @@
+@"
+# Dataset files
+data/*.txt
+data/*.csv
+data/*.arff
+
+# Trained model artifacts
+models/*.pkl
+models/*.onnx
+models/*.joblib
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.env
+venv/
+.venv/
+
+# Jupyter
+.ipynb_checkpoints/
+
+src/models/
+
+# OS
+.DS_Store
+"@ | Out-File -FilePath .gitignore -Encoding utf8
